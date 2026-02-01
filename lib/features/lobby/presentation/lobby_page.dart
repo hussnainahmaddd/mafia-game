@@ -97,8 +97,8 @@ class LobbyPage extends StatelessWidget {
                   child: GridView.builder(
                     padding: const EdgeInsets.all(20),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.85,
+                      crossAxisCount: 3,
+                      childAspectRatio: 0.75,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
                     ),

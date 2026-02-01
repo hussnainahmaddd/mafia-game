@@ -8,6 +8,7 @@ import '../../features/game/presentation/game_page.dart';
 import '../../features/create_game/presentation/create_game_page.dart';
 import '../../features/create_game/presentation/custom_game_page.dart';
 import '../../features/game/presentation/role_reveal_page.dart';
+import '../../features/premium/presentation/premium_page.dart';
 
 final goRouter = GoRouter(
   initialLocation: '/',
@@ -54,6 +55,10 @@ final goRouter = GoRouter(
         final id = state.pathParameters['id'] ?? 'unknown';
         return GamePage(gameId: id);
       },
+    ),
+    GoRoute(
+      path: '/premium',
+      builder: (context, state) => const PremiumPage(),
     ),
   ],
 );

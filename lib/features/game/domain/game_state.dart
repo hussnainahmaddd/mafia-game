@@ -5,7 +5,10 @@ enum GamePhase {
   mafiaVote,       // 5s
   doctorAction,    // 5s
   detectiveAction, // 5s
-  day,             // Day phase
+  dayStart,        // Sunrise animation
+  dayResults,      // Who died?
+  dayDiscussion,   // 2 mins chat
+  dayVote,         // Voting
 }
 
 enum PlayerRole {
@@ -25,15 +28,20 @@ class GameState {
   final int? doctorTargetId;
   final int? detectiveTargetId;
   final String? investigationResult; // "MAFIA" or "INNOCENT"
+  
+  final int? lastKilledId; // Who died last night?
+  final List<int> deadPlayerIds; // List of all dead players
 
   const GameState({
     this.phase = GamePhase.initialLobby,
     this.timer = 0,
-    this.userRole = PlayerRole.detective, // Testing Detective Phase
+    this.userRole = PlayerRole.villager,
     this.messages = const [],
     this.doctorTargetId,
     this.detectiveTargetId,
     this.investigationResult,
+    this.lastKilledId,
+    this.deadPlayerIds = const [],
   });
 
   GameState copyWith({
@@ -44,6 +52,8 @@ class GameState {
     int? doctorTargetId,
     int? detectiveTargetId,
     String? investigationResult,
+    int? lastKilledId,
+    List<int>? deadPlayerIds,
   }) {
     return GameState(
       phase: phase ?? this.phase,
@@ -53,6 +63,8 @@ class GameState {
       doctorTargetId: doctorTargetId ?? this.doctorTargetId,
       detectiveTargetId: detectiveTargetId ?? this.detectiveTargetId,
       investigationResult: investigationResult ?? this.investigationResult,
+      lastKilledId: lastKilledId,
+      deadPlayerIds: deadPlayerIds ?? this.deadPlayerIds,
     );
   }
 }

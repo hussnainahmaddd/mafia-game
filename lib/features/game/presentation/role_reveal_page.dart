@@ -4,18 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../domain/game_state.dart';
+import 'providers/game_provider.dart';
 
-class RoleRevealPage extends StatefulWidget {
+class RoleRevealPage extends ConsumerStatefulWidget {
   final String gameId;
 
   const RoleRevealPage({super.key, required this.gameId});
 
   @override
-  State<RoleRevealPage> createState() => _RoleRevealPageState();
+  ConsumerState<RoleRevealPage> createState() => _RoleRevealPageState();
 }
 
-class _RoleRevealPageState extends State<RoleRevealPage> with SingleTickerProviderStateMixin {
+class _RoleRevealPageState extends ConsumerState<RoleRevealPage> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
   bool _isFront = true;
@@ -260,6 +263,45 @@ class _RoleRevealPageState extends State<RoleRevealPage> with SingleTickerProvid
   }
 
   Widget _buildCardFront() {
+    final role = ref.watch(gameProvider).userRole;
+    String imagePath;
+    String title;
+    String description;
+    Color color;
+
+    switch (role) {
+      case PlayerRole.mafia:
+      case PlayerRole.godfather:
+        imagePath = 'assets/images/avatars/mafia.png';
+        title = 'MAFIA';
+        description = 'Kill the innocent. Dominate the town.';
+        color = Colors.red;
+        break;
+      case PlayerRole.doctor:
+        imagePath = 'assets/images/avatars/doctor.png';
+        title = 'DOCTOR';
+        description = 'Save lives. Protect your people.';
+        color = Colors.green;
+        break;
+      case PlayerRole.detective:
+        imagePath = 'assets/images/avatars/detective.png';
+        title = 'DETECTIVE';
+        description = 'Find the Mafia. Trust no one.';
+        color = Colors.blue;
+        break;
+      case PlayerRole.villager:
+        imagePath = 'assets/images/avatars/villager.png';
+        title = 'VILLAGER';
+        description = 'Survive. Vote intelligently.';
+        color = Colors.brown;
+        break;
+      default:
+        imagePath = 'assets/images/avatars/unknown.png';
+        title = 'UNKNOWN';
+        description = 'Your fate is unclear.';
+        color = Colors.grey;
+    }
+
     return Transform(
       alignment: Alignment.center,
       transform: Matrix4.identity()..rotateY(pi), 
@@ -270,7 +312,7 @@ class _RoleRevealPageState extends State<RoleRevealPage> with SingleTickerProvid
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-             BoxShadow(color: AppColors.secondary.withOpacity(0.5), blurRadius: 30, spreadRadius: 5),
+             BoxShadow(color: color.withOpacity(0.5), blurRadius: 30, spreadRadius: 5),
           ],
         ),
         child: Column(
@@ -281,7 +323,7 @@ class _RoleRevealPageState extends State<RoleRevealPage> with SingleTickerProvid
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 child: Image.asset(
-                  'assets/images/avatars/detective.png', // Simulated Role
+                  imagePath,
                   fit: BoxFit.cover,
                   width: double.infinity,
                 ),
@@ -305,19 +347,19 @@ class _RoleRevealPageState extends State<RoleRevealPage> with SingleTickerProvid
                       ),
                     ),
                     const Gap(5),
-                    const Text(
-                      'DETECTIVE',
+                    Text(
+                      title,
                       style: TextStyle(
                         fontFamily: 'BlackOpsOne',
                         fontSize: 32,
-                        color: Colors.blue,
+                        color: color,
                       ),
                     ),
                     const Gap(10),
-                    const Text(
-                      'Find the Mafia. Protect the town. Trust no one.',
+                    Text(
+                      description,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ],
                 ),

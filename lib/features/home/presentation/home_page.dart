@@ -107,6 +107,17 @@ class HomePage extends StatelessWidget {
                     delay: 600.ms,
                     onTap: () {},
                   ),
+                  const Gap(16),
+                  _CinematicButton(
+                    title: 'PREMIUM ACCESS',
+                    subtitle: 'Become The Don',
+                    icon: Icons.diamond, // or star
+                    color: Colors.amber.withOpacity(0.1),
+                    borderColor: Colors.amber,
+                    textColor: Colors.amber,
+                    delay: 700.ms,
+                    onTap: () => context.push('/premium'),
+                  ),
                   
                   const Spacer(),
                 ],

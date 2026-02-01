@@ -56,8 +56,66 @@ class GameNotifier extends Notifier<GameState> {
   void startDetectiveAction() {
     state = state.copyWith(phase: GamePhase.detectiveAction, timer: 15, investigationResult: null, detectiveTargetId: null);
     _startCountdown(() {
-      // 5. Day Phase
-      state = state.copyWith(phase: GamePhase.day, timer: 0);
+      startDayPhase();
+    });
+  }
+
+  void startDayPhase() {
+    // 6. Day Sunrise Layout
+    state = state.copyWith(phase: GamePhase.dayStart, timer: 4);
+    _startCountdown(() {
+       startDayResults();
+    });
+  }
+
+  void startDayResults() {
+    // 1. Calculate Night Results
+    // Simulate Mafia usage: If no vote, random kill or no kill.
+    // For now, let's simulate Mafia killed Player 1 (unless Doctor saved 1).
+    int? mafiaRefTarget = 1; // Hardcoded simulation target
+    int? victimId;
+
+    if (mafiaRefTarget != state.doctorTargetId) {
+      victimId = mafiaRefTarget;
+    } else {
+      victimId = null; // Saved!
+    }
+
+    final newDeadList = [...state.deadPlayerIds];
+    if (victimId != null && !newDeadList.contains(victimId)) {
+      newDeadList.add(victimId);
+    }
+
+    state = state.copyWith(
+      phase: GamePhase.dayResults, 
+      timer: 8, // Show results for 8 seconds
+      lastKilledId: victimId,
+      deadPlayerIds: newDeadList,
+    );
+
+    _startCountdown(() {
+      startDayDiscussion();
+    });
+  }
+
+  void startDayDiscussion() {
+    // 2 min Chat
+    // Clear night messages or keep? Let's keep for context, but maybe separate.
+    state = state.copyWith(
+      phase: GamePhase.dayDiscussion, 
+      timer: 120, 
+    );
+    _startCountdown(() {
+      startDayVote();
+    });
+  }
+
+  void startDayVote() {
+    state = state.copyWith(phase: GamePhase.dayVote, timer: 30);
+    // Voting logic ends, loop back to night or game over.
+    _startCountdown(() {
+      // Loop back to night for now
+      startNightPhase(); 
     });
   }
 

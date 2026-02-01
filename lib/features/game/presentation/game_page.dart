@@ -66,17 +66,29 @@ class _GamePageState extends ConsumerState<GamePage> {
               ),
             ),
 
+          // DAY START (Sunrise)
+          if (gameState.phase == GamePhase.dayStart)
+             _buildInfoScreen('MORNING ARRIVES', 'assets/images/phases/day_sunrise.png', Colors.orangeAccent),
+
+          // DAY RESULTS (Who Died?)
+          if (gameState.phase == GamePhase.dayResults)
+            _buildLobbyView(gameState),
+
+          // DAY DISCUSSION (Chat)
+          if (gameState.phase == GamePhase.dayDiscussion)
+             _buildDayChat(gameState),
+
+          // DAY VOTE
+          if (gameState.phase == GamePhase.dayVote)
+             _buildVotingView(gameState),
+
           // MAFIA CHAT OVERLAY
           if (gameState.phase == GamePhase.mafiaChat)
              if (isMafia) _buildMafiaChat(gameState)
-             else _buildInfoScreen('TOWN SLEEPS', Icons.nightlight_round, Colors.blueGrey),
+             else _buildInfoScreen('TOWN SLEEPS', 'assets/images/phases/town_sleeping.png', Colors.blueGrey),
 
           // INITIAL LOBBY VIEW
           if (gameState.phase == GamePhase.initialLobby)
-             _buildLobbyView(gameState),
-
-          // LOBBY VIEW (Day)
-          if (gameState.phase == GamePhase.day)
              _buildLobbyView(gameState),
 
           // MAFIA KILL VOTE GRID
@@ -87,7 +99,7 @@ class _GamePageState extends ConsumerState<GamePage> {
                actionLabel: 'KILL',
                onAction: (id) {}, 
              )
-             else _buildInfoScreen('MAFIA IS HUNTING', Icons.warning_amber_rounded, Colors.redAccent),
+             else _buildInfoScreen('MAFIA IS HUNTING', 'assets/images/phases/mafia_killing.png', Colors.redAccent),
 
           // DOCTOR SAVE GRID
           if (gameState.phase == GamePhase.doctorAction)
@@ -100,7 +112,7 @@ class _GamePageState extends ConsumerState<GamePage> {
                  onAction: (id) => ref.read(gameProvider.notifier).healPlayer(id),
                )
             else 
-               _buildInfoScreen('DOCTOR IS WORKING', Icons.medical_services, Colors.green),
+               _buildInfoScreen('DOCTOR IS WORKING', 'assets/images/phases/doctor_working.png', Colors.green),
 
   // DETECTIVE INVESTIGATE GRID
           if (gameState.phase == GamePhase.detectiveAction)
@@ -118,7 +130,7 @@ class _GamePageState extends ConsumerState<GamePage> {
                  },
                )
             else 
-               _buildInfoScreen('DETECTIVE IS INVESTIGATING', Icons.search, Colors.blue),
+               _buildInfoScreen('DETECTIVE IS INVESTIGATING', 'assets/images/phases/detective_working.png', Colors.blue),
 
           // Global Timer Indicator
           SafeArea(
@@ -132,15 +144,100 @@ class _GamePageState extends ConsumerState<GamePage> {
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.secondary),
                 ),
-                child: Text(
-                  '00:${gameState.timer.toString().padLeft(2, '0')}',
-                  style: const TextStyle(
-                      fontFamily: 'BlackOpsOne', color: AppColors.accent, fontSize: 20),
+                child: Builder(
+                  builder: (context) {
+                    final minutes = (gameState.timer / 60).floor();
+                    final seconds = gameState.timer % 60;
+                    return Text(
+                      '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                      style: const TextStyle(
+                          fontFamily: 'BlackOpsOne', color: AppColors.accent, fontSize: 20),
+                    );
+                  }
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDayChat(GameState state) {
+    return Positioned.fill(
+      child: Container(
+        color: AppColors.primary, // Clean background
+        child: SafeArea(
+          child: Column(
+            children: [
+              const Gap(60), // Clear the timer
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'TOWN MEETING',
+                  style: TextStyle(
+                      fontFamily: 'BlackOpsOne', color: Colors.orange[200], fontSize: 28, shadows: [Shadow(color: Colors.orange, blurRadius: 10)]),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: state.messages.length, // Should ideally be separate day messages list
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                           color: Colors.white.withOpacity(0.1),
+                           borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          state.messages[index],
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _chatController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Share your thoughts...',
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                          fillColor: Colors.black.withOpacity(0.5),
+                          filled: true,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                        ),
+                      ),
+                    ),
+                    const Gap(10),
+                    Container(
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.orange),
+                      child: IconButton(
+                        icon: const Icon(Icons.send, color: Colors.white),
+                        onPressed: () {
+                          if (_chatController.text.isNotEmpty) {
+                            // Ideally use user's name/role if revealed, or just Player X
+                            ref.read(gameProvider.notifier).addMessage('Me: ${_chatController.text}');
+                            _chatController.clear();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -201,23 +298,31 @@ class _GamePageState extends ConsumerState<GamePage> {
   }
 
   Widget _buildLobbyView(GameState state) {
-    bool isDay = state.phase == GamePhase.day;
+    bool isDayResults = state.phase == GamePhase.dayResults;
+    String title = 'THE TOWN GATHERS';
+    String subtitle = 'Get to know your neighbors...';
+
+    if (isDayResults) {
+      title = state.lastKilledId != null ? 'TRAGEDY STRIKES!' : 'PEACEFUL NIGHT';
+      subtitle = state.lastKilledId != null ? 'Someone was found dead this morning.' : 'The doctor saved the day (or the Mafia slept).';
+    }
+
     return Positioned.fill(
       child: Container(
-        color: AppColors.primary, // Day/Neutral background
+        color: AppColors.primary, // Neutral background
         padding: const EdgeInsets.all(16),
         child: SafeArea(
           child: Column(
             children: [
               const Gap(40),
               Text(
-                isDay ? 'DAY 1' : 'THE TOWN GATHERS',
+                title,
                 style: const TextStyle(
                     fontFamily: 'BlackOpsOne', color: AppColors.textPrimary, fontSize: 28),
               ),
                const Gap(10),
                Text(
-                isDay ? 'Discuss and vote to eliminate a suspect.' : 'Get to know your neighbors...',
+                subtitle,
                 style: TextStyle(color: AppColors.textSecondary.withOpacity(0.7)),
               ),
               const Gap(30),
@@ -231,22 +336,77 @@ class _GamePageState extends ConsumerState<GamePage> {
                   ),
                   itemCount: 9, 
                   itemBuilder: (context, index) {
+                    final isDead = state.deadPlayerIds.contains(index);
+                    
                     return Column(
                       children: [
                         Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppColors.highlight.withOpacity(0.3)),
-                              image: const DecorationImage(
-                                image: AssetImage('assets/images/avatars/unknown.png'),
-                                fit: BoxFit.cover,
+                          child: Stack(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isDead ? Colors.red.withOpacity(0.6) : AppColors.highlight.withOpacity(0.3),
+                                    width: isDead ? 2 : 1,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: ColorFiltered(
+                                    colorFilter: isDead 
+                                        ? const ColorFilter.mode(Colors.grey, BlendMode.saturation) 
+                                        : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
+                                    child: Image.asset(
+                                      'assets/images/avatars/unknown.png', // Ideally this is the player's actual avatar
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (isDead)
+                                Positioned.fill(
+                                  child: Container(
+                                    color: Colors.black.withOpacity(0.4),
+                                    child: Center(
+                                      child: Transform.rotate(
+                                        angle: -0.2,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: Colors.red, width: 2),
+                                            borderRadius: BorderRadius.circular(4),
+                                            color: Colors.black.withOpacity(0.5)
+                                          ),
+                                          child: const Text(
+                                            'ELIMINATED',
+                                            style: TextStyle(
+                                              fontFamily: 'BlackOpsOne',
+                                              color: Colors.red,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1.2
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                         const Gap(5),
-                        Text('Player ${index + 1}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        Text(
+                          'Player ${index + 1}', 
+                          style: TextStyle(
+                            color: isDead ? Colors.red[200] : Colors.white, 
+                            fontSize: 12, 
+                            decoration: isDead ? TextDecoration.lineThrough : null,
+                            decorationColor: Colors.red,
+                          )
+                        ),
                       ],
                     );
                   },
@@ -329,23 +489,71 @@ class _GamePageState extends ConsumerState<GamePage> {
     );
   }
 
-  Widget _buildInfoScreen(String title, IconData icon, Color color) {
+  Widget _buildInfoScreen(String title, String imagePath, Color color) {
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.9),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 80, color: color.withOpacity(0.5)),
-              const Gap(20),
-              Text(
-                title,
-                style: TextStyle(
-                    fontFamily: 'BlackOpsOne', color: color, fontSize: 32),
-              ).animate(onPlay: (controller) => controller.repeat(reverse: true)).fadeIn(duration: 1000.ms).then().fadeOut(duration: 1000.ms),
-            ],
-          ),
+        color: Colors.black, // darker background for illustration
+        child: Stack(
+          children: [
+            // Background Image
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.6,
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            // Gradient Overlay
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.7),
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.8),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Text Content
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: color.withOpacity(0.5), width: 2),
+                  boxShadow: [
+                     BoxShadow(color: Colors.black.withOpacity(0.8), blurRadius: 15, spreadRadius: 5),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontFamily: 'BlackOpsOne', 
+                          color: color, 
+                          fontSize: 32, 
+                          height: 1.1,
+                          shadows: [
+                            BoxShadow(color: color.withOpacity(0.8), blurRadius: 20),
+                          ]),
+                    ).animate(onPlay: (controller) => controller.repeat(reverse: true)).fadeIn(duration: 1000.ms).scale(begin: const Offset(0.9, 0.9), end: const Offset(1.0, 1.0)),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -366,7 +574,7 @@ class _GamePageState extends ConsumerState<GamePage> {
         child: SafeArea(
           child: Column(
             children: [
-              const Gap(50), // Avoid Timer Overlap
+              const Gap(60), // Avoid Timer Overlap
               Text(
                 title,
                 style: TextStyle(
@@ -439,26 +647,150 @@ class _GamePageState extends ConsumerState<GamePage> {
       ),
     );
   }
+
+
+  Widget _buildVotingView(GameState state) {
+    print('*** BUILDING VOTING VIEW ***');
+    return Positioned.fill(
+      child: Container(
+        color: const Color(0xFF2C1F1F), // Dark courthouse/room bg
+        padding: const EdgeInsets.all(16),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const Gap(60),
+              const Text(
+                'CAST YOUR VOTE',
+                style: TextStyle(
+                    fontFamily: 'BlackOpsOne', color: Colors.redAccent, fontSize: 28, letterSpacing: 1.5),
+              ),
+               const Gap(10),
+               Text(
+                'Who do you suspect?',
+                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+              ),
+              const Gap(30),
+              Expanded(
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 0.65, // Tall for posters
+                  ),
+                  itemCount: 9, 
+                  itemBuilder: (context, index) {
+                    final isDead = state.deadPlayerIds.contains(index);
+                    if (isDead) return const SizedBox.shrink(); // Hide dead players or show distinct style? Let's hide or dim.
+
+                    // For now, simulate local selection state with a ValueNotifier or just use a local variable?
+                    // Since it's stateless here, we depend on provider/callback. 
+                    // But we don't have a 'selectedVoteId' in GameState yet? 
+                    // The generic grid used 'selectedId', but GameState doesn't track user's vote selection persistantly in UI?
+                    // Actually _buildActionGrid passed 'onAction'.
+                    // Let's assume we just fire the action. We might need local state for visual feedback if GameState doesn't update immediately.
+                    // For UI demo, I'll use a Stateful wrapper or just simulating click effect.
+                    
+                    return _VotingCard(
+                      index: index, 
+                      onVote: (id) {
+                         // Implement vote logic later, for now just print or no-op visual
+                      }
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class DetectiveFlipCard extends StatefulWidget {
-  final int index;
-  final bool isRevealed;
-  final String frontImage;
-  final String roleName;
-  final VoidCallback onTap;
+// ... existing code ...
 
-  const DetectiveFlipCard({
-    super.key,
-    required this.index,
-    required this.isRevealed,
-    required this.frontImage,
-    required this.roleName,
-    required this.onTap,
-  });
+class _VotingCard extends StatefulWidget {
+  final int index;
+  final Function(int) onVote;
+  const _VotingCard({required this.index, required this.onVote});
 
   @override
-  State<DetectiveFlipCard> createState() => _DetectiveFlipCardState();
+  State<_VotingCard> createState() => _VotingCardState();
+}
+
+class _VotingCardState extends State<_VotingCard> {
+  bool _isSelected = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isSelected = !_isSelected;
+        });
+        if (_isSelected) widget.onVote(widget.index);
+      },
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4E1C1), // Paper/parchment color
+              borderRadius: BorderRadius.circular(4),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 5, offset: const Offset(2, 2))
+              ],
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Column(
+              children: [
+                const Text('WANTED', style: TextStyle(fontFamily: 'BlackOpsOne', color: Colors.black87, fontSize: 12)),
+                const Gap(4),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black54),
+                      color: Colors.grey[300],
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/avatars/unknown.png'),
+                        fit: BoxFit.cover,
+                      )
+                    ),
+                  ),
+                ),
+                const Gap(4),
+                Text('Player ${widget.index + 1}', style: const TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 10)),
+              ],
+            ),
+          ),
+          if (_isSelected)
+            Positioned.fill(
+              child: Center(
+                child: Transform.rotate(
+                  angle: -0.2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.red, width: 3),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'VOTE',
+                      style: TextStyle(
+                        fontFamily: 'BlackOpsOne',
+                        color: Colors.red,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DetectiveFlipCardState extends State<DetectiveFlipCard> with SingleTickerProviderStateMixin {
@@ -600,4 +932,24 @@ class _DetectiveFlipCardState extends State<DetectiveFlipCard> with SingleTicker
       ),
     );
   }
+}
+
+class DetectiveFlipCard extends StatefulWidget {
+  final int index;
+  final bool isRevealed;
+  final String frontImage;
+  final String roleName;
+  final VoidCallback onTap;
+
+  const DetectiveFlipCard({
+    super.key,
+    required this.index,
+    required this.isRevealed,
+    required this.frontImage,
+    required this.roleName,
+    required this.onTap,
+  });
+
+  @override
+  State<DetectiveFlipCard> createState() => _DetectiveFlipCardState();
 }
